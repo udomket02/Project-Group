@@ -1,3 +1,4 @@
+
 package lab;
 
 import java.util.ArrayList;
@@ -13,9 +14,7 @@ public class RequestManager {
 	private final ArrayList<Integer> destinationFloors;
 
 	public RequestManager() {
-
 		requestQueue = new LinkedList<>();
-
 		destinationFloors = new ArrayList<>();
 	}
 
@@ -26,17 +25,15 @@ public class RequestManager {
 	public boolean addHallRequest(HallRequest request) {
 
 		if (hasSameHallRequest(request.getFloor(), request.getDirection())) {
-
 			return false;
 		}
 
 		requestQueue.offer(request);
-
 		return true;
 	}
 
 	// =====================================================
-	// ตรวจ Hall Request ซ้ำ
+	// ตรวจ Hall Request ซ้ำ (Linear Search)
 	// =====================================================
 
 	public boolean hasSameHallRequest(int floor, String direction) {
@@ -44,7 +41,6 @@ public class RequestManager {
 		for (HallRequest request : requestQueue) {
 
 			if (request.getFloor() == floor && request.getDirection().equals(direction)) {
-
 				return true;
 			}
 		}
@@ -53,18 +49,58 @@ public class RequestManager {
 	}
 
 	// =====================================================
-	// เพิ่มชั้นจากด้านในลิฟต์
+	// เพิ่มชั้นจากด้านในลิฟต์ (Linear Search)
 	// =====================================================
 
 	public boolean addDestination(int floor) {
 
-		if (destinationFloors.contains(floor)) {
-			return false;
+		// ค้นหาว่าชั้นนี้มีอยู่แล้วหรือไม่
+		for (int existingFloor : destinationFloors) {
+
+			if (existingFloor == floor) {
+				return false;
+			}
 		}
 
 		destinationFloors.add(floor);
-
 		return true;
+	}
+
+	// =====================================================
+	// Insertion Sort เรียงชั้นปลายทาง
+	// UP = น้อยไปมาก
+	// DOWN = มากไปน้อย
+	// =====================================================
+
+	public void sortDestinations(String direction) {
+
+		for (int i = 1; i < destinationFloors.size(); i++) {
+
+			int key = destinationFloors.get(i);
+			int j = i - 1;
+
+			// เรียงจากน้อยไปมาก
+			if (direction.equals("UP")) {
+
+				while (j >= 0 && destinationFloors.get(j) > key) {
+
+					destinationFloors.set(j + 1, destinationFloors.get(j));
+					j--;
+				}
+			}
+
+			// เรียงจากมากไปน้อย
+			else if (direction.equals("DOWN")) {
+
+				while (j >= 0 && destinationFloors.get(j) < key) {
+
+					destinationFloors.set(j + 1, destinationFloors.get(j));
+					j--;
+				}
+			}
+
+			destinationFloors.set(j + 1, key);
+		}
 	}
 
 	// =====================================================
@@ -112,7 +148,6 @@ public class RequestManager {
 		for (HallRequest request : requestQueue) {
 
 			if (request.getFloor() == floor) {
-
 				return request.getDirection();
 			}
 		}
@@ -127,23 +162,18 @@ public class RequestManager {
 	public boolean removeHallRequestsAtFloor(int floor, String direction) {
 
 		int queueSize = requestQueue.size();
-
 		boolean found = false;
 
 		for (int i = 0; i < queueSize; i++) {
 
 			HallRequest request = requestQueue.poll();
 
-			// ถ้าตรงชั้นและตรงทิศ
 			if (request.getFloor() == floor && request.getDirection().equals(direction)) {
 
-				// ไม่ใส่กลับ Queue
 				found = true;
 
 			} else {
 
-				// ยังไม่ถึงคิวนี้
-				// ใส่กลับท้าย Queue
 				requestQueue.offer(request);
 			}
 		}
@@ -157,42 +187,30 @@ public class RequestManager {
 
 	public boolean hasWorkAhead(int currentFloor, String direction) {
 
-		// -----------------------------------------
 		// ตรวจชั้นที่กดจากในลิฟต์
-		// -----------------------------------------
-
 		for (int floor : destinationFloors) {
 
 			if (direction.equals("UP") && floor > currentFloor) {
-
 				return true;
 			}
 
 			if (direction.equals("DOWN") && floor < currentFloor) {
-
 				return true;
 			}
 		}
 
-		// -----------------------------------------
 		// ตรวจ Queue ด้านนอก
-		// -----------------------------------------
-
 		for (HallRequest request : requestQueue) {
 
-			// คนละทิศ
 			if (!request.getDirection().equals(direction)) {
-
 				continue;
 			}
 
 			if (direction.equals("UP") && request.getFloor() > currentFloor) {
-
 				return true;
 			}
 
 			if (direction.equals("DOWN") && request.getFloor() < currentFloor) {
-
 				return true;
 			}
 		}

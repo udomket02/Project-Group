@@ -1,340 +1,301 @@
+
 package lab;
 
 import java.util.Scanner;
 
 public class Main {
 
-	private static final int MIN_FLOOR = 1;
-	private static final int MAX_FLOOR = 6;
+    private static final int MIN_FLOOR = 1;
+    private static final int MAX_FLOOR = 6;
 
-	public static void main(String[] args) {
+    private static final Scanner scanner = new Scanner(System.in);
 
-		Elevator elevator = new Elevator(1);
+    public static void main(String[] args) {
 
-		RequestManager requestManager = new RequestManager();
+        // สร้างลิฟต์ 2 ตัว
+        Elevator elevator1 = new Elevator(1);
+        Elevator elevator2 = new Elevator(1);
 
-		ElevatorController controller = new ElevatorController(elevator, requestManager, MIN_FLOOR, MAX_FLOOR);
+        // สร้าง RequestManager แยกกัน
+        RequestManager manager1 = new RequestManager();
+        RequestManager manager2 = new RequestManager();
 
-		Scanner scanner = new Scanner(System.in);
+        // สร้าง Controller แยกกัน
+        ElevatorController controller1 =
+            new ElevatorController(
+                elevator1, manager1, MIN_FLOOR, MAX_FLOOR
+            );
 
-		while (true) {
+        ElevatorController controller2 =
+            new ElevatorController(
+                elevator2, manager2, MIN_FLOOR, MAX_FLOOR
+            );
 
-			printSimulation(controller);
+        // สร้างระบบควบคุมลิฟต์ 2 ตัว
+        ElevatorSystem system =
+            new ElevatorSystem(controller1, controller2);
 
-			System.out.println("1. เรียกลิฟต์จากด้านนอก");
+        int choice;
 
-			System.out.println("2. กดเลือกชั้นในลิฟต์");
+        do {
+        	System.out.println("=====================================");
+            System.out.println("           ELEVATOR SYSTEM (Demo)          ");
+            System.out.println("=====================================");
+            System.out.println("1. Call Elevator");
+            System.out.println("2. Select Destination");
+            System.out.println("3. Move One Step");
+            System.out.println("4. Auto Simulation");
+            System.out.println("5. Show Elevator Status");
+            System.out.println("0. Exit");
+            System.out.println("=====================================");
 
-			System.out.println("3. เดินหน้า 1 Step");
+            choice = readInt("Select menu: ");
 
-			System.out.println("4. Auto Simulation");
+            switch (choice) {
 
-			System.out.println("0. จบโปรแกรม");
+                case 1:
+                    callElevator(system);
+                    break;
 
-			// =================================================
-			// รับเมนู
-			// =================================================
+                case 2:
+                    selectDestination(system);
+                    break;
 
-			String choice;
+                case 3:
+                    moveOneStep(system);
+                    break;
 
-			while (true) {
+                case 4:
+                    autoSimulation(system);
+                    break;
 
-				System.out.print("เลือกคำสั่ง: ");
+                case 5:
+                    printSimulation(
+                        system.getElevator1(),
+                        system.getElevator2()
+                    );
+                    break;
 
-				choice = scanner.nextLine().trim();
+                case 0:
+                    System.out.println("Exit Elevator System");
+                    break;
 
-				if (choice.equals("0") || choice.equals("1") || choice.equals("2") || choice.equals("3")
-						|| choice.equals("4")) {
+                default:
+                    System.out.println("Invalid menu. Try again.");
+            }
 
-					break;
-				}
+        } while (choice != 0);
 
-				System.out.println("[Error] กรุณาเลือก 0-4");
-			}
+        scanner.close();
+    }
 
-			// =================================================
-			// จบโปรแกรม
-			// =================================================
+    // เรียกลิฟต์จากด้านนอก
+    private static void callElevator(ElevatorSystem system) {
 
-			if (choice.equals("0")) {
+        int floor = readInt("Enter your floor (1-6): ");
 
-				System.out.println("ปิดระบบจำลอง");
+        if (floor < MIN_FLOOR || floor > MAX_FLOOR) {
+            System.out.println("Invalid floor.");
+            return;
+        }
 
-				break;
-			}
+        String direction;
 
-			switch (choice) {
+        while (true) {
+            System.out.print("Direction (U/D): ");
+            direction = scanner.nextLine().trim().toUpperCase();
 
-			// =============================================
-			// 1. เรียกลิฟต์จากด้านนอก
-			// =============================================
+            if (direction.equals("U") || direction.equals("D")) {
+                break;
+            }
 
-			case "1":
+            System.out.println("Please enter U or D.");
+        }
 
-				int floor;
+        if (floor == MAX_FLOOR && direction.equals("U")) {
+            System.out.println("Cannot go UP from the top floor.");
+            return;
+        }
 
-				// -----------------------------
-				// รับชั้น
-				// -----------------------------
+        if (floor == MIN_FLOOR && direction.equals("D")) {
+            System.out.println("Cannot go DOWN from the ground floor.");
+            return;
+        }
 
-				while (true) {
+        String fullDirection =
+            direction.equals("U") ? "UP" : "DOWN";
 
-					System.out.print("คุณอยู่ชั้นไหน (" + MIN_FLOOR + "-" + MAX_FLOOR + "): ");
+        HallRequest request =
+            new HallRequest(floor, fullDirection);
 
-					try {
+        system.callElevator(request);
 
-						floor = Integer.parseInt(scanner.nextLine().trim());
+    }
 
-						if (floor < MIN_FLOOR || floor > MAX_FLOOR) {
+    // เลือกชั้นปลายทางภายในลิฟต์
+    private static void selectDestination(ElevatorSystem system) {
 
-							System.out.println("[Error] กรุณาเลือกชั้น " + MIN_FLOOR + "-" + MAX_FLOOR);
+        int elevatorNumber = readInt("Select Elevator (1 or 2): ");
 
-							continue;
-						}
+        if (elevatorNumber != 1 && elevatorNumber != 2) {
+            System.out.println("Invalid elevator number.");
+            return;
+        }
 
-						break;
+        int floor = readInt("Enter destination floor (1-6): ");
 
-					} catch (NumberFormatException e) {
+        if (floor < MIN_FLOOR || floor > MAX_FLOOR) {
+            System.out.println("Invalid floor.");
+            return;
+        }
 
-						System.out.println("[Error] กรุณากรอกตัวเลข");
-					}
-				}
+        system.selectDestination(elevatorNumber, floor);
+    }
 
-				String direction;
+    // เคลื่อนที่หนึ่งขั้น
+    private static void moveOneStep(ElevatorSystem system) {
 
-				// -----------------------------
-				// รับ UP / DOWN
-				// -----------------------------
+        int elevatorNumber = readInt("Select Elevator (1 or 2): ");
 
-				while (true) {
+        ElevatorController controller;
 
-					System.out.print("กดปุ่มไหน " + "(U = ขึ้น, D = ลง): ");
+        if (elevatorNumber == 1) {
+            controller = system.getElevator1();
+        } else if (elevatorNumber == 2) {
+            controller = system.getElevator2();
+        } else {
+            System.out.println("Invalid elevator number.");
+            return;
+        }
 
-					String dir = scanner.nextLine().trim().toUpperCase();
+        controller.step();
 
-					if (dir.equals("U")) {
+        printSimulation(
+            system.getElevator1(),
+            system.getElevator2()
+        );
+    }
 
-						if (floor == MAX_FLOOR) {
+    // จำลองการทำงานอัตโนมัติของลิฟต์ทั้งสองตัว
+    private static void autoSimulation(ElevatorSystem system) {
 
-							System.out.println("[Error] ชั้นบนสุด" + "ไม่สามารถกด UP ได้");
+        boolean hasWork = system.hasWork();
 
-							continue;
-						}
+        if (!hasWork) {
+            System.out.println("No elevator movement available.");
+            return;
+        }
 
-						direction = "UP";
+        while (system.hasWork()) {
+            system.moveElevators();
 
-						break;
+            printSimulation(
+                system.getElevator1(),
+                system.getElevator2()
+            );
 
-					} else if (dir.equals("D")) {
+            if (!system.hasWork()) {
+                break;
+            }
 
-						if (floor == MIN_FLOOR) {
+            // หยุดเมื่อมีลิฟต์รอให้ผู้โดยสารเลือกปลายทาง
+            if (system.getElevator1().isWaitingForDestinationInput()
+                || system.getElevator2().isWaitingForDestinationInput()) {
+                break;
+            }
+        }
 
-							System.out.println("[Error] ชั้นล่างสุด" + "ไม่สามารถกด DOWN ได้");
+        System.out.println("Auto Simulation finished.");
+    }
 
-							continue;
-						}
+    // แสดงสถานะลิฟต์ทั้งสองตัว
+    private static void printSimulation(
+        ElevatorController controller1,
+        ElevatorController controller2
+    ) {
 
-						direction = "DOWN";
+        Elevator e1 = controller1.getElevator();
+        Elevator e2 = controller2.getElevator();
 
-						break;
+        System.out.println("\n========== ELEVATOR STATUS ==========");
 
-					} else {
+        for (int floor = MAX_FLOOR; floor >= MIN_FLOOR; floor--) {
 
-						System.out.println("[Error] กรุณากด U หรือ D");
-					}
-				}
+            String display1 = getElevatorDisplay(e1, floor, "E1");
+            String display2 = getElevatorDisplay(e2, floor, "E2");
 
-				controller.addHallRequest(new HallRequest(floor, direction));
+            System.out.println(
+                "Floor " + floor + " | " + display1 + " | " + display2
+            );
+        }
 
-				break;
+        System.out.println("-------------------------------------");
 
-			// =============================================
-			// 2. เลือกชั้นในลิฟต์
-			// =============================================
+        System.out.println(
+            "E1: Floor " + e1.getCurrentFloor()
+            + " | Direction: " + e1.getDirection()
+            + " | Door: " + (e1.isDoorOpen() ? "OPEN" : "CLOSED")
+        );
 
-			case "2":
+        System.out.println(
+            "E2: Floor " + e2.getCurrentFloor()
+            + " | Direction: " + e2.getDirection()
+            + " | Door: " + (e2.isDoorOpen() ? "OPEN" : "CLOSED")
+        );
 
-				if (!controller.isWaitingForDestinationInput()) {
+        System.out.println("\nE1 Destinations: "
+            + controller1.getRequestManager().getDestinationFloors());
 
-					System.out.println("[Error] ตอนนี้ยังไม่มีผู้โดยสาร" + "กำลังขึ้นลิฟต์");
+        System.out.println("E1 Hall Requests: "
+            + controller1.getRequestManager().getRequestQueue());
 
-					break;
-				}
+        System.out.println("\nE2 Destinations: "
+            + controller2.getRequestManager().getDestinationFloors());
 
-				while (true) {
+        System.out.println("E2 Hall Requests: "
+            + controller2.getRequestManager().getRequestQueue());
 
-					System.out.print("เลือกชั้นปลายทาง (" + MIN_FLOOR + "-" + MAX_FLOOR + "): ");
+        System.out.println("=====================================");
+    }
 
-					int destination;
+    // สร้างสัญลักษณ์แสดงตำแหน่งและทิศทาง
+    private static String getElevatorDisplay(
+        Elevator elevator,
+        int floor,
+        String name
+    ) {
 
-					try {
+        if (elevator.getCurrentFloor() != floor) {
+            return "       ";
+        }
 
-						destination = Integer.parseInt(scanner.nextLine().trim());
+        if (elevator.isDoorOpen()) {
+            return "[" + name + " OPEN]";
+        }
 
-					} catch (NumberFormatException e) {
+        if (elevator.getDirection().equals("UP")) {
+            return "[" + name + " ▲]";
+        }
 
-						System.out.println("[Error] กรุณากรอกตัวเลข");
+        if (elevator.getDirection().equals("DOWN")) {
+            return "[" + name + " ▼]";
+        }
 
-						continue;
-					}
+        return "[" + name + " ■]";
+    }
 
-					if (destination < MIN_FLOOR || destination > MAX_FLOOR) {
+    // รับค่าตัวเลขและป้องกันการกรอกข้อมูลผิด
+    private static int readInt(String message) {
 
-						System.out.println("[Error] กรุณาเลือกชั้น " + MIN_FLOOR + "-" + MAX_FLOOR);
+        while (true) {
+            System.out.print(message);
+            String input = scanner.nextLine();
 
-						continue;
-					}
-
-					/*
-					 * ถ้า Controller บอกว่า input ถูกต้องแล้ว จึงออกจาก loop
-					 */
-
-					if (controller.addDestination(destination)) {
-
-						break;
-					}
-				}
-
-				break;
-
-			// =============================================
-			// 3. Step
-			// =============================================
-
-			case "3":
-
-				controller.step();
-
-				break;
-
-			// =============================================
-			// 4. Auto Simulation
-			// =============================================
-
-			case "4":
-
-				System.out.println("\n>> เริ่ม Auto Simulation\n");
-
-				/*
-				 * ถ้ายังไม่ได้เลือก Destination จะไม่ยอมออกเดินทาง
-				 */
-
-				if (!controller.prepareForMovement()) {
-
-					break;
-				}
-
-				while (controller.canAutoRun()) {
-
-					controller.step();
-
-					printSimulation(controller);
-
-					try {
-
-						Thread.sleep(600);
-
-					} catch (InterruptedException e) {
-
-						Thread.currentThread().interrupt();
-
-						break;
-					}
-				}
-
-				// เจอคนรอระหว่างทาง
-				if (controller.isWaitingForDestinationInput()) {
-
-					System.out.println(">> มีคนขึ้นลิฟต์แล้ว");
-
-					System.out.println(">> กดข้อ 2 ได้หลายครั้ง" + "เพื่อเลือกหลายชั้น");
-
-					System.out.println(">> เมื่อเลือกครบแล้ว " + "กด 3 หรือ 4 " + "เพื่อเดินทางต่อ");
-
-				} else {
-
-					System.out.println(">> Auto Simulation " + "เสร็จสิ้น");
-				}
-
-				break;
-			}
-		}
-
-		scanner.close();
-	}
-
-	// =====================================================
-	// แสดงสถานะลิฟต์
-	// =====================================================
-
-	private static void printSimulation(ElevatorController controller) {
-
-		Elevator elevator = controller.getElevator();
-
-		RequestManager manager = controller.getRequestManager();
-
-		System.out.println("\n==================================================");
-
-		System.out.println("           ELEVATOR SIMULATION SYSTEM");
-
-		System.out.println("==================================================");
-
-		// =================================================
-		// แสดงชั้น 6 -> 1
-		// =================================================
-
-		for (int floor = MAX_FLOOR; floor >= MIN_FLOOR; floor--) {
-
-			String display = "   |   ";
-
-			if (elevator.getCurrentFloor() == floor) {
-
-				if (elevator.isDoorOpen()) {
-
-					display = "[ OPEN ]";
-
-				} else if (elevator.getDirection().equals("UP")) {
-
-					display = "[E-▲]";
-
-				} else if (elevator.getDirection().equals("DOWN")) {
-
-					display = "[E-▼]";
-
-				} else {
-
-					display = "[E-■]";
-				}
-			}
-
-			System.out.printf(" ชั้น %d | %s%n", floor, display);
-		}
-
-		System.out.println("--------------------------------------------------");
-
-		System.out.printf("ทิศทาง: %s | ประตู: %s%n",
-
-				elevator.getDirection(),
-
-				elevator.isDoorOpen() ? "เปิดอยู่" : "ปิดสนิท");
-
-		// =================================================
-		// ArrayList
-		// =================================================
-
-		System.out.println("ชั้นที่ถูกเลือกในลิฟต์: " + manager.getDestinationFloors());
-
-		// =================================================
-		// Queue
-		// =================================================
-
-		System.out.println("Queue ผู้รอด้านนอก: " + manager.getRequestQueue());
-
-		if (controller.isWaitingForDestinationInput()) {
-
-			System.out.println("สถานะ: กำลังรับผู้โดยสาร " + "/ สามารถเลือกหลายชั้นได้");
-		}
-
-		System.out.println("==================================================");
-	}
+            try {
+                return Integer.parseInt(input.trim());
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid number.");
+            }
+        }
+    }
 }
