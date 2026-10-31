@@ -304,7 +304,7 @@ public class ElevatorController {
 
 	public boolean canAutoRun() {
 
-		if (waitingForDestinationInput) {
+		if (waitingForDestinationInput && !destinationChosenForCurrentBoarding) {
 			return false;
 		}
 
