@@ -26,100 +26,85 @@ public class ElevatorController {
 		boardingDirection = "IDLE";
 	}
 
-	// =====================================================
-	// เรียกลิฟต์จากด้านนอก
-	// =====================================================
-
-	public void addHallRequest(HallRequest request) {
+	public boolean addHallRequest(HallRequest request) {
 
 		int floor = request.getFloor();
 		String direction = request.getDirection();
 
 		if (floor < minFloor || floor > maxFloor) {
-			System.out.println("[Error] ไม่มีชั้น " + floor);
-			return;
+			System.out.println("Invalid floor.");
+			return false;
 		}
 
 		if (!direction.equals("UP") && !direction.equals("DOWN")) {
-			System.out.println("[Error] ต้องเลือก UP หรือ DOWN");
-			return;
+			System.out.println("Invalid direction.");
+			return false;
 		}
 
 		if (floor == maxFloor && direction.equals("UP")) {
-			System.out.println("[Error] ชั้นบนสุดไม่สามารถกด UP ได้");
-			return;
+			System.out.println("Cannot go UP from the top floor.");
+			return false;
 		}
 
 		if (floor == minFloor && direction.equals("DOWN")) {
-			System.out.println("[Error] ชั้นล่างสุดไม่สามารถกด DOWN ได้");
-			return;
+			System.out.println("Cannot go DOWN from the ground floor.");
+			return false;
 		}
 
 		if (!requestManager.addHallRequest(request)) {
-			System.out.println(">> ปุ่มเรียกลิฟต์ชั้น " + floor + " (" + direction + ") ถูกกดอยู่แล้ว");
-			return;
+			System.out.println("This elevator request already exists.");
+			return false;
 		}
-
-		System.out.println(">> เพิ่มคำขอ: " + request);
 
 		if (elevator.getCurrentFloor() == floor && elevator.getDirection().equals("IDLE") && !elevator.isDoorOpen()
 				&& !requestManager.hasDestinations()) {
 
 			serveHallRequestAtCurrentFloor(direction);
 		}
-	}
-
-	// =====================================================
-	// กดเลือกชั้นจากด้านในลิฟต์
-	// =====================================================
-
-	public boolean addDestination(int floor) {
-
-		if (!waitingForDestinationInput || !elevator.isDoorOpen()) {
-			System.out.println("[Error] ตอนนี้ยังไม่มีผู้โดยสารกำลังขึ้นลิฟต์");
-			return false;
-		}
-
-		if (floor < minFloor || floor > maxFloor) {
-			System.out.println("[Error] ไม่มีชั้น " + floor);
-			return false;
-		}
-
-		if (floor == elevator.getCurrentFloor()) {
-			System.out.println("[Error] ลิฟต์อยู่ชั้น " + floor + " อยู่แล้ว");
-			return false;
-		}
-
-		if (boardingDirection.equals("UP") && floor < elevator.getCurrentFloor()) {
-
-			System.out.println("[Error] กด UP จึงต้องเลือกชั้นที่สูงกว่า");
-			return false;
-		}
-
-		if (boardingDirection.equals("DOWN") && floor > elevator.getCurrentFloor()) {
-
-			System.out.println("[Error] กด DOWN จึงต้องเลือกชั้นที่ต่ำกว่า");
-			return false;
-		}
-
-		destinationChosenForCurrentBoarding = true;
-
-		if (!requestManager.addDestination(floor)) {
-			System.out.println(">> ชั้น " + floor + " ถูกเลือกอยู่แล้ว");
-			return true;
-		}
-
-		// เรียงชั้นปลายทางด้วย Insertion Sort
-		requestManager.sortDestinations(boardingDirection);
-
-		System.out.println(">> เพิ่มปลายทางชั้น " + floor);
 
 		return true;
 	}
 
-	// =====================================================
-	// เดินลิฟต์ 1 Step
-	// =====================================================
+	public boolean addDestination(int floor) {
+
+		if (!waitingForDestinationInput || !elevator.isDoorOpen()) {
+			System.out.println("No passenger is currently boarding this elevator.");
+			return false;
+		}
+
+		if (floor < minFloor || floor > maxFloor) {
+			System.out.println("Invalid floor.");
+			return false;
+		}
+
+		if (floor == elevator.getCurrentFloor()) {
+			System.out.println("Elevator is already on this floor.");
+			return false;
+		}
+
+		if (boardingDirection.equals("UP") && floor < elevator.getCurrentFloor()) {
+			System.out.println("UP direction requires a higher floor.");
+			return false;
+		}
+
+		if (boardingDirection.equals("DOWN") && floor > elevator.getCurrentFloor()) {
+			System.out.println("DOWN direction requires a lower floor.");
+			return false;
+		}
+
+		if (!requestManager.addDestination(floor)) {
+			System.out.println("Destination floor already selected.");
+			return false;
+		}
+
+		requestManager.sortDestinations(boardingDirection);
+
+		destinationChosenForCurrentBoarding = true;
+
+		System.out.println("Destination floor " + floor + " added.");
+
+		return true;
+	}
 
 	public void step() {
 
@@ -140,7 +125,7 @@ public class ElevatorController {
 		chooseDirection();
 
 		if (elevator.getDirection().equals("IDLE")) {
-			System.out.println(">> ไม่มีงานที่ต้องทำ");
+			System.out.println("No pending requests.");
 			return;
 		}
 
@@ -153,13 +138,7 @@ public class ElevatorController {
 			elevator.setCurrentFloor(currentFloor - 1);
 		}
 
-		System.out.println(">> ลิฟต์มาถึงชั้น " + elevator.getCurrentFloor());
-
 		boolean stoppedForDestination = requestManager.removeDestination(elevator.getCurrentFloor());
-
-		if (stoppedForDestination) {
-			System.out.println(">> ถึงชั้นที่ถูกเลือกไว้");
-		}
 
 		boolean pickedUp = false;
 
@@ -177,22 +156,16 @@ public class ElevatorController {
 		}
 
 		if (stoppedForDestination && !pickedUp) {
-
 			elevator.openDoor();
-			System.out.println(">> ประตูเปิดอัตโนมัติ");
 		}
 	}
-
-	// =====================================================
-	// เตรียมลิฟต์ก่อนออกเดินทาง
-	// =====================================================
 
 	public boolean prepareForMovement() {
 
 		if (waitingForDestinationInput) {
 
 			if (!destinationChosenForCurrentBoarding) {
-				System.out.println("[Error] กรุณาเลือกชั้นปลายทางอย่างน้อย 1 ชั้น");
+				System.out.println("Please select at least one destination floor.");
 				return false;
 			}
 
@@ -202,7 +175,6 @@ public class ElevatorController {
 
 			if (elevator.isDoorOpen()) {
 				elevator.closeDoor();
-				System.out.println(">> ประตูปิดอัตโนมัติ");
 			}
 
 			return true;
@@ -210,15 +182,10 @@ public class ElevatorController {
 
 		if (elevator.isDoorOpen()) {
 			elevator.closeDoor();
-			System.out.println(">> ประตูปิดอัตโนมัติ");
 		}
 
 		return true;
 	}
-
-	// =====================================================
-	// เลือกทิศทางการเดิน
-	// =====================================================
 
 	private void chooseDirection() {
 
@@ -271,10 +238,6 @@ public class ElevatorController {
 		elevator.setDirection("IDLE");
 	}
 
-	// =====================================================
-	// รับคนจากด้านนอก
-	// =====================================================
-
 	private boolean serveHallRequestAtCurrentFloor(String direction) {
 
 		int currentFloor = elevator.getCurrentFloor();
@@ -290,17 +253,13 @@ public class ElevatorController {
 		destinationChosenForCurrentBoarding = false;
 		boardingDirection = direction;
 
-		System.out.println(">> รับคนที่รอชั้น " + currentFloor + " (" + direction + ")");
+		System.out.println("Passengers picked up at Floor " + currentFloor + " (" + direction + ").");
 
-		System.out.println(">> ประตูเปิดอัตโนมัติ");
-		System.out.println(">> กดข้อ 2 ได้หลายครั้งเพื่อเลือกหลายชั้น");
+		System.out.println("Door opened automatically.");
+		System.out.println("Use Menu 2 to select one or more destination floors.");
 
 		return true;
 	}
-
-	// =====================================================
-	// Auto Simulation
-	// =====================================================
 
 	public boolean canAutoRun() {
 
@@ -310,10 +269,6 @@ public class ElevatorController {
 
 		return requestManager.hasHallRequests() || requestManager.hasDestinations() || elevator.isDoorOpen();
 	}
-
-	// =====================================================
-	// Getter
-	// =====================================================
 
 	public boolean isWaitingForDestinationInput() {
 		return waitingForDestinationInput;

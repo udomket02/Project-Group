@@ -12,38 +12,33 @@ public class Main {
 
 	public static void main(String[] args) {
 
-		// Create two elevators
 		Elevator elevator1 = new Elevator(1);
 		Elevator elevator2 = new Elevator(1);
 
-		// Create RequestManagers
 		RequestManager manager1 = new RequestManager();
 		RequestManager manager2 = new RequestManager();
 
-		// Create Controllers
 		ElevatorController controller1 = new ElevatorController(elevator1, manager1, MIN_FLOOR, MAX_FLOOR);
 
 		ElevatorController controller2 = new ElevatorController(elevator2, manager2, MIN_FLOOR, MAX_FLOOR);
 
-		// Create Elevator System
 		ElevatorSystem system = new ElevatorSystem(controller1, controller2);
 
 		int choice;
 
 		do {
-			System.out.println("\n\n\n============================================");
+			System.out.println("\n============================================");
 			System.out.println("          ELEVATOR SYSTEM (Demo)");
 			System.out.println("============================================");
 			System.out.println("1. Call Elevator");
 			System.out.println("2. Select Destination");
 			System.out.println("3. Elevator Movement & Status");
 			System.out.println("0. Exit");
-			System.out.println("=====================================");
+			System.out.println("============================================");
 
-			choice = readInt("\nSelect menu: ");
+			choice = readInt("Select menu: ");
 
 			switch (choice) {
-
 			case 1:
 				callElevator(system);
 				break;
@@ -57,11 +52,11 @@ public class Main {
 				break;
 
 			case 0:
-				System.out.println("Exit Elevator System");
+				System.out.println("Exit Elevator System.");
 				break;
 
 			default:
-				System.out.println("Invalid menu. Try again.");
+				System.out.println("Invalid menu. Please try again.");
 			}
 
 		} while (choice != 0);
@@ -69,67 +64,89 @@ public class Main {
 		scanner.close();
 	}
 
-	// Menu 1: Call Elevator
 	private static void callElevator(ElevatorSystem system) {
 
-		int floor = readInt("Enter your floor (1-6): ");
+		while (true) {
 
-		if (floor < MIN_FLOOR || floor > MAX_FLOOR) {
-			System.out.println("Invalid floor.");
-			return;
+			int floor = readInt("Enter your floor (1-6): ");
+
+			if (floor < MIN_FLOOR || floor > MAX_FLOOR) {
+				System.out.println("Invalid floor. Please enter 1-6.");
+				continue;
+			}
+
+			String direction;
+
+			while (true) {
+				System.out.print("Direction (U/D): ");
+				direction = scanner.nextLine().trim().toUpperCase();
+
+				if (direction.equals("U") || direction.equals("D")) {
+					break;
+				}
+
+				System.out.println("Invalid direction. Please enter U or D.");
+			}
+
+			if (floor == MAX_FLOOR && direction.equals("U")) {
+				System.out.println("Cannot go UP from the top floor. Please enter again.");
+				continue;
+			}
+
+			if (floor == MIN_FLOOR && direction.equals("D")) {
+				System.out.println("Cannot go DOWN from the ground floor. Please enter again.");
+				continue;
+			}
+
+			String fullDirection = direction.equals("U") ? "UP" : "DOWN";
+
+			HallRequest request = new HallRequest(floor, fullDirection);
+
+			int assignedElevator = system.callElevator(request);
+
+			if (assignedElevator == 0) {
+				System.out.println("This request already exists. Please enter another request.");
+				continue;
+			}
+
+			System.out.println("Elevator " + assignedElevator + " has been assigned.");
+			System.out.println("Elevator " + assignedElevator + " is assigned to respond to Floor " + floor + ".");
+
+			break;
 		}
+	}
 
-		String direction;
+	private static void selectDestination(ElevatorSystem system) {
+
+		int elevatorNumber;
 
 		while (true) {
-			System.out.print("Direction (U/D): ");
-			direction = scanner.nextLine().trim().toUpperCase();
+			elevatorNumber = readInt("Select Elevator (1 or 2): ");
 
-			if (direction.equals("U") || direction.equals("D")) {
+			if (elevatorNumber == 1 || elevatorNumber == 2) {
 				break;
 			}
 
-			System.out.println("Please enter U or D.");
+			System.out.println("Invalid elevator number. Please enter 1 or 2.");
 		}
 
-		if (floor == MAX_FLOOR && direction.equals("U")) {
-			System.out.println("Cannot go UP from the top floor.");
-			return;
+		while (true) {
+
+			int floor = readInt("Enter destination floor (1-6): ");
+
+			if (floor < MIN_FLOOR || floor > MAX_FLOOR) {
+				System.out.println("Invalid floor. Please enter 1-6.");
+				continue;
+			}
+
+			if (system.selectDestination(elevatorNumber, floor)) {
+				break;
+			}
+
+			System.out.println("Please enter a valid destination floor.");
 		}
-
-		if (floor == MIN_FLOOR && direction.equals("D")) {
-			System.out.println("Cannot go DOWN from the ground floor.");
-			return;
-		}
-
-		String fullDirection = direction.equals("U") ? "UP" : "DOWN";
-
-		HallRequest request = new HallRequest(floor, fullDirection);
-
-		system.callElevator(request);
 	}
 
-	// Menu 2: Select Destination
-	private static void selectDestination(ElevatorSystem system) {
-
-		int elevatorNumber = readInt("Select Elevator (1 or 2): ");
-
-		if (elevatorNumber != 1 && elevatorNumber != 2) {
-			System.out.println("Invalid elevator number.");
-			return;
-		}
-
-		int floor = readInt("Enter destination floor (1-6): ");
-
-		if (floor < MIN_FLOOR || floor > MAX_FLOOR) {
-			System.out.println("Invalid floor.");
-			return;
-		}
-
-		system.selectDestination(elevatorNumber, floor);
-	}
-
-	// Menu 3: Elevator Movement & Status
 	private static void movementStatusMenu(ElevatorSystem system) {
 
 		int choice;
@@ -147,7 +164,6 @@ public class Main {
 			choice = readInt("Select menu: ");
 
 			switch (choice) {
-
 			case 1:
 				moveOneStep(system);
 				break;
@@ -164,34 +180,19 @@ public class Main {
 				break;
 
 			default:
-				System.out.println("Invalid menu. Try again.");
+				System.out.println("Invalid menu. Please try again.");
 			}
 
 		} while (choice != 0);
 	}
 
-	// Move one elevator one step
 	private static void moveOneStep(ElevatorSystem system) {
 
-		int elevatorNumber = readInt("Select Elevator (1 or 2): ");
-
-		ElevatorController controller;
-
-		if (elevatorNumber == 1) {
-			controller = system.getElevator1();
-		} else if (elevatorNumber == 2) {
-			controller = system.getElevator2();
-		} else {
-			System.out.println("Invalid elevator number.");
-			return;
-		}
-
-		controller.step();
+		system.moveElevators();
 
 		printSimulation(system.getElevator1(), system.getElevator2());
 	}
 
-	// Automatically simulate both elevators
 	private static void autoSimulation(ElevatorSystem system) {
 
 		if (!system.hasWork()) {
@@ -200,16 +201,13 @@ public class Main {
 		}
 
 		while (system.hasWork()) {
-
 			system.moveElevators();
-
 			printSimulation(system.getElevator1(), system.getElevator2());
 		}
 
 		System.out.println("Auto Simulation finished.");
 	}
 
-	// Show status of both elevators
 	private static void printSimulation(ElevatorController controller1, ElevatorController controller2) {
 
 		Elevator e1 = controller1.getElevator();
@@ -244,7 +242,6 @@ public class Main {
 		System.out.println("=====================================");
 	}
 
-	// Display elevator position
 	private static String getElevatorDisplay(Elevator elevator, int floor, String name) {
 
 		if (elevator.getCurrentFloor() != floor) {
@@ -266,7 +263,6 @@ public class Main {
 		return "[" + name + " ■]";
 	}
 
-	// Read integer input
 	private static int readInt(String message) {
 
 		while (true) {
@@ -276,7 +272,7 @@ public class Main {
 			try {
 				return Integer.parseInt(input.trim());
 			} catch (NumberFormatException e) {
-				System.out.println("Please enter a valid number.");
+				System.out.println("Invalid input. Please enter a number.");
 			}
 		}
 	}

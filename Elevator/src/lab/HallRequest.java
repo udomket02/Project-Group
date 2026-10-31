@@ -1,3 +1,4 @@
+
 package lab;
 
 public class HallRequest {
@@ -20,6 +21,6 @@ public class HallRequest {
 
 	@Override
 	public String toString() {
-		return "ชั้น " + floor + " (" + direction + ")";
+		return "Floor " + floor + " (" + direction + ")";
 	}
 }

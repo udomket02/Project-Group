@@ -3,70 +3,67 @@ package lab;
 
 public class ElevatorSystem {
 
-    private final ElevatorController elevator1;
-    private final ElevatorController elevator2;
+	private final ElevatorController elevator1;
+	private final ElevatorController elevator2;
 
-    public ElevatorSystem(ElevatorController elevator1,
-                          ElevatorController elevator2) {
-        this.elevator1 = elevator1;
-        this.elevator2 = elevator2;
-    }
+	public ElevatorSystem(ElevatorController elevator1, ElevatorController elevator2) {
+		this.elevator1 = elevator1;
+		this.elevator2 = elevator2;
+	}
 
-    // เลือกลิฟต์ที่อยู่ใกล้ชั้นที่เรียกมากที่สุด
-    public void callElevator(HallRequest request) {
+	public int callElevator(HallRequest request) {
 
-        int floor = request.getFloor();
+		int floor = request.getFloor();
 
-        int distance1 = Math.abs(
-            elevator1.getElevator().getCurrentFloor() - floor
-        );
+		int distance1 = Math.abs(elevator1.getElevator().getCurrentFloor() - floor);
 
-        int distance2 = Math.abs(
-            elevator2.getElevator().getCurrentFloor() - floor
-        );
+		int distance2 = Math.abs(elevator2.getElevator().getCurrentFloor() - floor);
 
-        if (distance1 <= distance2) {
-            System.out.println("ระบบเลือก ELEVATOR 1");
-            elevator1.addHallRequest(request);
-        } else {
-            System.out.println("ระบบเลือก ELEVATOR 2");
-            elevator2.addHallRequest(request);
-        }
-    }
+		if (distance1 <= distance2) {
+			if (elevator1.addHallRequest(request)) {
+				return 1;
+			}
+		} else {
+			if (elevator2.addHallRequest(request)) {
+				return 2;
+			}
+		}
 
-    // เลือกชั้นปลายทางของลิฟต์
-    public void selectDestination(int elevatorNumber, int floor) {
+		return 0;
+	}
 
-        if (elevatorNumber == 1) {
-            elevator1.addDestination(floor);
-        } else if (elevatorNumber == 2) {
-            elevator2.addDestination(floor);
-        } else {
-            System.out.println("ไม่พบหมายเลขลิฟต์");
-        }
-    }
+	public boolean selectDestination(int elevatorNumber, int floor) {
 
-    // สั่งให้ลิฟต์แต่ละตัวเคลื่อนที่หนึ่งขั้น
-    public void moveElevators() {
+		if (elevatorNumber == 1) {
+			return elevator1.addDestination(floor);
+		} else if (elevatorNumber == 2) {
+			return elevator2.addDestination(floor);
+		}
 
-        if (elevator1.canAutoRun()) {
-            elevator1.step();
-        }
+		System.out.println("Invalid elevator number.");
+		return false;
+	}
 
-        if (elevator2.canAutoRun()) {
-            elevator2.step();
-        }
-    }
+	public void moveElevators() {
 
-    public boolean hasWork() {
-        return elevator1.canAutoRun() || elevator2.canAutoRun();
-    }
+		if (elevator1.canAutoRun()) {
+			elevator1.step();
+		}
 
-    public ElevatorController getElevator1() {
-        return elevator1;
-    }
+		if (elevator2.canAutoRun()) {
+			elevator2.step();
+		}
+	}
 
-    public ElevatorController getElevator2() {
-        return elevator2;
-    }
+	public boolean hasWork() {
+		return elevator1.canAutoRun() || elevator2.canAutoRun();
+	}
+
+	public ElevatorController getElevator1() {
+		return elevator1;
+	}
+
+	public ElevatorController getElevator2() {
+		return elevator2;
+	}
 }
